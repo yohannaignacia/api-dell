@@ -1,36 +1,74 @@
 <?php
-// Mengatur header agar aplikasi Flutter mengenali format JSON
+
+header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-// Memanggil file koneksi database
-// Pastikan path ke database.php benar (sesuaikan jika folder config ada di tempat lain)
-include_once '../config/database.php';
-
-// Menyiapkan query untuk mengambil data
-// Kolom 'fullname' disesuaikan dengan struktur tabel yang kamu kirimkan
-$query = "SELECT id, fullname, email, role, status FROM users";
-
-// Eksekusi query menggunakan variabel $conn (pastikan ini nama variabel koneksi di database.php)
-$result = $conn->query($query);
-
-// Membuat array untuk menampung hasil data
-$users = array();
-
-// Mengecek apakah data ditemukan
-if ($result && $result->num_rows > 0) {
-    // Mengubah setiap baris data menjadi array asosiatif
-    while ($row = $result->fetch_assoc()) {
-        $users[] = $row;
-    }
-    // Mengirim data dalam bentuk format JSON
-    echo json_encode($users);
-} else {
-    // Jika data kosong, kirim array kosong
-    echo json_encode([]);
+// Handle preflight request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
 }
 
-// Menutup koneksi
-$conn->close();
+include_once '../config/database.php';
+
+try {
+
+    if (!$conn) {
+        throw new Exception("Database connection failed");
+    }
+
+    $query = "
+        SELECT
+            id,
+            fullname,
+            email,
+            role,
+            status
+        FROM users
+        ORDER BY id DESC
+    ";
+
+    $result = $conn->query($query);
+
+    if (!$result) {
+        throw new Exception($conn->error);
+    }
+
+    $users = [];
+
+    while ($row = $result->fetch_assoc()) {
+
+        $users[] = [
+            "id" => (int)$row["id"],
+            "fullname" => $row["fullname"] ?? "",
+            "email" => $row["email"] ?? "",
+            "role" => $row["role"] ?? "user",
+            "status" => $row["status"] ?? "active"
+        ];
+    }
+
+    echo json_encode([
+        "success" => true,
+        "message" => "Users fetched successfully",
+        "data" => $users
+    ]);
+
+} catch (Exception $e) {
+
+    http_response_code(500);
+
+    echo json_encode([
+        "success" => false,
+        "message" => $e->getMessage(),
+        "data" => []
+    ]);
+
+}
+
+if (isset($conn)) {
+    $conn->close();
+}
+
 ?>
