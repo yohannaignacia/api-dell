@@ -1,38 +1,39 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 header("Content-Type: application/json");
+include '../config/database.php';
 
-// Tangani Preflight Request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { 
-    http_response_code(200); 
-    exit(); 
+$json = file_get_contents("php://input");
+$data = json_decode($json, true);
+
+if (!$data) {
+    echo json_encode(["success" => false, "message" => "Data tidak diterima"]);
+    exit();
 }
 
-if (isset($_FILES['image'])) {
-    // Pastikan folder 'uploads' ini ada di struktur project PHP kamu
-    $target_dir = "../uploads/"; 
-    if(!is_dir($target_dir)) {
-        mkdir($target_dir, 0777, true);
-    }
-    
-    // Memberi nama unik agar gambar tidak bentrok
-    $file_name = time() . "_" . preg_replace("/[^a-zA-Z0-9.]/", "", basename($_FILES["image"]["name"]));
-    $target_file = $target_dir . $file_name;
-    
-    if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
-        // Ambil protokol (http/https) dan nama domain dari Railway
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-        $domain = $_SERVER['HTTP_HOST'];
-        
-        $image_url = $protocol . "://" . $domain . "/uploads/" . $file_name;
-        
-        echo json_encode(["success" => true, "image_url" => $image_url]);
-    } else {
-        echo json_encode(["success" => false, "message" => "Gagal menyimpan file ke folder"]);
-    }
+$id = $data['id'];
+$stmt = $conn->prepare("UPDATE products SET category_id=?, name=?, sku=?, description=?, price=?, stock=?, image_url=?, processor=?, ram=?, storage=?, display_size=?, weight=? WHERE id=?");
+
+$stmt->bind_param("isssdissssssi", 
+    $data['category_id'], $data['name'], $data['sku'], $data['description'], 
+    $data['price'], $data['stock'], $data['image_url'], 
+    $data['processor'], $data['ram'], $data['storage'], 
+    $data['display_size'], $data['weight'], $id
+);
+
+if ($stmt->execute()) {
+    echo json_encode(["success" => true, "message" => "Produk berhasil diupdate"]);
 } else {
-    echo json_encode(["success" => false, "message" => "Tidak ada file gambar yang dikirim"]);
+    echo json_encode(["success" => false, "message" => $conn->error]);
 }
+$stmt->close();
+$conn->close();
 ?>
