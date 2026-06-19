@@ -48,14 +48,26 @@ while ($row = $result->fetch_assoc()) {
     $row['price'] = (double)$row['price'];
     $row['stock'] = (int)$row['stock'];
 
-    // URL gambar otomatis
-    if (
-        !empty($row['image_url']) &&
-        !str_starts_with($row['image_url'], 'http')
-    ) {
-        $row['image_url'] =
-            'http://localhost/dell_xps_api/uploads/' .
-            $row['image_url'];
+    // Normalisasi URL gambar agar selalu memakai Railway
+    if (!empty($row['image_url'])) {
+
+        // Jika masih URL localhost lama
+        if (str_contains($row['image_url'], 'localhost')) {
+
+            $filename = basename($row['image_url']);
+
+            $row['image_url'] =
+                'https://api-dell-production.up.railway.app/uploads/' .
+                $filename;
+        }
+
+        // Jika hanya nama file
+        else if (!str_starts_with($row['image_url'], 'http')) {
+
+            $row['image_url'] =
+                'https://api-dell-production.up.railway.app/uploads/' .
+                $row['image_url'];
+        }
     }
 
     $data[] = $row;
@@ -66,3 +78,7 @@ echo json_encode([
     "total" => count($data),
     "data" => $data
 ], JSON_UNESCAPED_UNICODE);
+
+$conn->close();
+
+?>
