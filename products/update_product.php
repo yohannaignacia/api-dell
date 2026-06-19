@@ -1,56 +1,39 @@
 <?php
-// =====================================
-// HEADER CORS & JSON (Wajib agar tidak kena blokir browser)
-// =====================================
+// 1. IZINKAN AKSES DARI SEMUA ORIGIN (SANGAT PENTING UNTUK WEB)
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// Handle preflight request
+// 2. TANGANI PREFLIGHT REQUEST (Wajib agar CORS tidak error)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// =====================================
-// KONEKSI DATABASE
-// =====================================
-include '../config/database.php'; // Sesuaikan path jika berbeda
+header("Content-Type: application/json");
 
-// Ambil input JSON dari Flutter
-$json = file_get_contents("php://input");
-$data = json_decode($json, true);
+// 3. KONEKSI DATABASE
+include '../config/database.php';
+
+$data = json_decode(file_get_contents("php://input"), true);
 
 if (!$data) {
     echo json_encode(["success" => false, "message" => "Data tidak diterima"]);
     exit();
 }
 
-// =====================================
-// PROSES UPDATE
-// =====================================
 $id = $data['id'] ?? 0;
 
+// 4. PREPARE STATEMENT (Pastikan semua kolom sesuai dengan database)
 $stmt = $conn->prepare("
-    UPDATE products SET
-        category_id = ?,
-        name = ?,
-        sku = ?,
-        description = ?,
-        price = ?,
-        stock = ?,
-        image_url = ?,
-        processor = ?,
-        ram = ?,
-        storage = ?,
-        display_size = ?,
-        weight = ?
-    WHERE id = ?
+    UPDATE products
+    SET
+        category_id=?, name=?, sku=?, description=?,
+        price=?, stock=?, image_url=?, processor=?,
+        ram=?, storage=?, display_size=?, weight=?
+    WHERE id=?
 ");
 
-// Bind parameter (i=int, s=string, d=double)
-// Pastikan urutan di sini SAMA PERSIS dengan urutan kolom di atas
 $stmt->bind_param(
     "isssdissssssi",
     $data['category_id'],
@@ -69,15 +52,9 @@ $stmt->bind_param(
 );
 
 if ($stmt->execute()) {
-    echo json_encode([
-        "success" => true,
-        "message" => "Produk berhasil diupdate"
-    ]);
+    echo json_encode(["success" => true, "message" => "Produk berhasil diupdate"]);
 } else {
-    echo json_encode([
-        "success" => false,
-        "message" => "Gagal update: " . $conn->error
-    ]);
+    echo json_encode(["success" => false, "message" => $conn->error]);
 }
 
 $stmt->close();
