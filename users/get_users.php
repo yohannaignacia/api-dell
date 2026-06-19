@@ -1,7 +1,8 @@
 <?php
 // Mengatur header agar aplikasi Flutter mengenali format JSON
 header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
 
 // Memanggil file koneksi database
 // Pastikan path ke database.php benar (sesuaikan jika folder config ada di tempat lain)
