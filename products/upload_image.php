@@ -27,11 +27,28 @@ if (!isset($_FILES['image'])) {
 
 $file = $_FILES['image'];
 
-$fileName = time() . "_" . basename($file["name"]);
+$extension = pathinfo(
+    $file['name'],
+    PATHINFO_EXTENSION
+);
 
-$targetPath = $uploadDir . $fileName;
+$fileName =
+    time() .
+    "_" .
+    uniqid() .
+    "." .
+    $extension;
 
-if (move_uploaded_file($file["tmp_name"], $targetPath)) {
+$targetPath =
+    $uploadDir .
+    $fileName;
+
+if (
+    move_uploaded_file(
+        $file['tmp_name'],
+        $targetPath
+    )
+) {
 
     $imageUrl =
         "https://api-dell-production.up.railway.app/uploads/" .
